@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from lxml import etree
+from cachetools import TTLCache
 
 from finviz.helper_functions.request_functions import http_request_get
 from finviz.helper_functions.scraper_functions import get_table
@@ -8,14 +9,16 @@ from finviz.helper_functions.scraper_functions import get_table
 STOCK_URL = "https://finviz.com/quote.ashx"
 NEWS_URL = "https://finviz.com/news.ashx"
 CRYPTO_URL = "https://finviz.com/crypto_performance.ashx"
+STOCK_PAGE = TTLCache(maxsize=100, ttl=60*15)
 
 
 def get_page(ticker):
-    STOCK_PAGE, _ = http_request_get(
-        url=STOCK_URL, payload={"t": ticker}, parse=True
-    )
+    global STOCK_PAGE
 
-    return STOCK_PAGE
+    if ticker not in STOCK_PAGE:
+        STOCK_PAGE[ticker], _ = http_request_get(
+            url=STOCK_URL, payload={"t": ticker}, parse=True
+        )
 
 
 def get_stock(ticker):
@@ -27,7 +30,8 @@ def get_stock(ticker):
     :return dict
     """
 
-    page_parsed = get_page(ticker)
+    get_page(ticker)
+    page_parsed = STOCK_PAGE[ticker]
 
     title = page_parsed.cssselect('table[class="fullview-title"]')[0]
     keys = ["Ticker","Company", "Sector", "Industry", "Country"]
@@ -66,7 +70,8 @@ def get_insider(ticker):
     :return: list
     """
 
-    page_parsed = get_page(ticker)
+    get_page(ticker)
+    page_parsed = STOCK_PAGE[ticker]
     outer_table = page_parsed.cssselect('table[class="body-table"]')
 
     if len(outer_table) == 0:
@@ -91,7 +96,8 @@ def get_news(ticker):
     :return: list
     """
 
-    page_parsed = get_page(ticker)
+    get_page(ticker)
+    page_parsed = STOCK_PAGE[ticker]
     news_table = page_parsed.cssselect('table[id="news-table"]')
 
     if len(news_table) == 0:
@@ -168,7 +174,8 @@ def get_analyst_price_targets(ticker, last_ratings=5):
     analyst_price_targets = []
 
     try:
-        page_parsed = get_page(ticker)
+        get_page(ticker)
+        page_parsed = STOCK_PAGE[ticker]
         table = page_parsed.cssselect('table[class="fullview-ratings-outer"]')[0]
 
         for row in table:
