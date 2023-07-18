@@ -108,21 +108,30 @@ def get_news(ticker):
     results = []
     date = None
     for row in rows:
-        raw_timestamp = row.xpath("./td")[0].xpath("text()")[0][0:-2]
+        raw_timestamp = row.xpath("./td")[0].xpath("text()")[0][0:-2].strip()
 
         if len(raw_timestamp) > 8:
             parsed_timestamp = datetime.strptime(raw_timestamp, "%b-%d-%y %I:%M%p")
             date = parsed_timestamp.date()
         else:
-            parsed_timestamp = datetime.strptime(raw_timestamp, "%I:%M%p").replace(
-                year=date.year, month=date.month, day=date.day)
+            # Try converting the incoming timestamp in either of two formats
+            for ts_format in ["%I:%M%p", "%I:%M"]:
+              try:
+                  parsed_timestamp = datetime.strptime(raw_timestamp, ts_format).replace(
+                      year=date.year, month=date.month, day=date.day)
+              except ValueError as e:
+                  pass
+            if not parsed_timestamp:
+              raise ValueError(f"Malformed timestamp {raw_timestamp}")
 
-        results.append((
-            parsed_timestamp.strftime("%Y-%m-%d %H:%M"),
-            row.xpath("./td")[1].cssselect('a[class="tab-link-news"]')[0].xpath("text()")[0],
-            row.xpath("./td")[1].cssselect('a[class="tab-link-news"]')[0].get("href"),
-            row.xpath("./td")[1].cssselect('div[class="news-link-right"] span')[0].xpath("text()")[0][1:]
-        ))
+        table_link_news = row.xpath("./td")[1].cssselect('a[class="tab-link-news"]')
+        if len(table_link_news) > 0:
+            results.append((
+                parsed_timestamp.strftime("%Y-%m-%d %H:%M"),
+                table_link_news[0].xpath("text()")[0],
+                table_link_news[0].get("href"),
+                row.xpath("./td")[1].cssselect('div[class="news-link-right"] span')[0].xpath("text()")[0][1:]
+            ))
 
     return results
 
