@@ -3,7 +3,6 @@ from distutils.core import setup
 setup(
     name="finviz",
     packages=["finviz", "finviz.helper_functions"],
-    version="1.4.6",
     license="MIT",
     description="Unofficial API for FinViz.com",
     author="Mario Stoev, James Bury",
