@@ -15,11 +15,13 @@ setup(
         "requests",
         "aiohttp",
         "urllib3",
+        "cachetools",
         "cssselect",
         "user_agent",
         "beautifulsoup4",
         "tqdm",
         "tenacity",
+
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
